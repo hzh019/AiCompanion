@@ -11,6 +11,7 @@ import com.aicompanion.data.local.dao.VoiceProfileDao
 import com.aicompanion.data.repository.ConversationRepository
 import com.aicompanion.data.repository.MemoryRepository
 import com.aicompanion.data.repository.PersonalityRepository
+import com.aicompanion.data.repository.ProactiveTriggerRepository
 import com.aicompanion.data.repository.VoiceProfileRepository
 import android.app.Application
 import dagger.Module
@@ -90,4 +91,9 @@ object DatabaseModule {
     @Singleton
     fun provideVoiceProfileRepository(dao: VoiceProfileDao): VoiceProfileRepository =
         VoiceProfileRepository(dao)
+
+    @Provides
+    @Singleton
+    fun provideProactiveTriggerRepository(dao: ProactiveTriggerDao): ProactiveTriggerRepository =
+        ProactiveTriggerRepository(dao)
 }

@@ -24,4 +24,11 @@ class VoiceProfileRepository(private val voiceProfileDao: VoiceProfileDao) {
     suspend fun delete(profile: VoiceProfileEntity) {
         voiceProfileDao.delete(profile)
     }
+
+    // Alias methods
+    suspend fun insertProfile(profile: VoiceProfileEntity) = insert(profile)
+    suspend fun setActiveProfile(id: String) {
+        voiceProfileDao.clearAllActive()
+        voiceProfileDao.setActive(id)
+    }
 }

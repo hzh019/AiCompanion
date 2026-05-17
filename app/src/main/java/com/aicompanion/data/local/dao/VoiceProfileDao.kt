@@ -24,4 +24,10 @@ interface VoiceProfileDao {
 
     @Delete
     suspend fun delete(profile: VoiceProfileEntity)
+
+    @Query("UPDATE voice_profiles SET is_active = 0")
+    suspend fun clearAllActive()
+
+    @Query("UPDATE voice_profiles SET is_active = 1 WHERE id = :id")
+    suspend fun setActive(id: String)
 }

@@ -37,4 +37,10 @@ class MemoryRepository(private val memoryDao: MemoryDao) {
     suspend fun getMemoriesNeedingConsolidation(threshold: Long): List<MemoryEntity> {
         return memoryDao.getMemoriesNeedingConsolidation(threshold)
     }
+
+    // Alias methods for callers using different naming conventions
+    suspend fun insertMemory(memory: MemoryEntity) = insert(memory)
+    suspend fun updateMemory(memory: MemoryEntity) = update(memory)
+    suspend fun softDeleteMemory(id: String) = softDelete(id)
+    suspend fun getTopMemories(limit: Int): List<MemoryEntity> = getTopByImportance(limit)
 }

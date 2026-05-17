@@ -150,7 +150,7 @@ class ProactiveWorker @AssistedInject constructor(
             val responseBuilder = StringBuilder()
             deepSeekClient.chatCompletionStream(
                 systemPrompt = systemPrompt,
-                messages = emptyList()
+                messages = messages
             ).collect { token ->
                 responseBuilder.append(token)
             }
