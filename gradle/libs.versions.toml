@@ -1,0 +1,73 @@
+[versions]
+kotlin = "2.0.21"
+compose-bom = "2024.12.01"
+hilt = "2.51.1"
+room = "2.6.1"
+datastore = "1.1.1"
+lifecycle = "2.8.7"
+navigation = "2.8.5"
+coroutines = "1.9.0"
+okhttp = "4.12.0"
+retrofit = "2.11.0"
+openai-kotlin = "4.0.1"
+sherpa-onnx = "1.10.0"
+mlkit-speech = "16.1.0"
+work = "2.10.0"
+core-ktx = "1.15.0"
+activity-compose = "1.9.3"
+
+[libraries]
+# Compose
+compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "compose-bom" }
+compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+compose-material-icons = { group = "androidx.compose.material", name = "material-icons-extended" }
+compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+compose-navigation = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation" }
+compose-lifecycle = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }
+compose-animation = { group = "androidx.compose.animation", name = "animation" }
+
+# Hilt
+hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
+hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
+hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version = "1.2.0" }
+
+# Room
+room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+
+# DataStore
+datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+
+# Lifecycle
+lifecycle-viewmodel = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+lifecycle-runtime = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
+
+# Network
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
+retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+retrofit-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
+openai-kotlin = { group = "com.aallam.openai", name = "openai-client", version.ref = "openai-kotlin" }
+
+# Voice / Audio
+sherpa-onnx = { group = "com.github.k2-fsa", name = "sherpa-onnx-android", version.ref = "sherpa-onnx" }
+mlkit-speech = { group = "com.google.mlkit", name = "speech-recognition", version.ref = "mlkit-speech" }
+mlkit-chinese = { group = "com.google.mlkit", name = "speech-recognition-chinese", version.ref = "mlkit-speech" }
+
+# Background
+work-runtime = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
+work-hilt = { group = "androidx.hilt", name = "hilt-work", version = "1.2.0" }
+
+# Core
+core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core-ktx" }
+activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activity-compose" }
+coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+
+[plugins]
+android-application = { id = "com.android.application", version = "8.7.3" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+ksp = { id = "com.google.devtools.ksp", version = "2.0.21-1.0.27" }

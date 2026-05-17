@@ -1,0 +1,33 @@
+# Ignore Gradle build output
+.gradle/
+build/
+*/build/
+app/build/
+
+# IDE files
+.idea/
+*.iml
+*.iws
+*.ipr
+.settings/
+.project
+.classpath
+
+# Android
+local.properties
+*.apk
+*.aab
+*.dex
+*.class
+bin/
+gen/
+out/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Secrets
+app/src/main/assets/secrets.properties
+*.keystore
+*.jks
