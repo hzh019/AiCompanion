@@ -1,12 +1,15 @@
 package com.aicompanion.ui.screens
 
+import android.app.Activity
+import android.content.Intent
+import android.speech.RecognizerIntent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -14,7 +17,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -23,7 +25,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.aicompanion.conversation.ConversationState
 import com.aicompanion.data.local.entity.MessageEntity
 import com.aicompanion.ui.viewmodel.ConversationViewModel
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,10 +37,21 @@ fun ConversationScreen(
     val uiState by viewModel.uiState.collectAsState()
     val textInput by viewModel.textInput.collectAsState()
     val listState = rememberLazyListState()
-    val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Auto-scroll to latest message
+    // System voice recognition launcher
+    val voiceLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val matches = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+            viewModel.onVoiceResult(matches?.firstOrNull())
+        } else {
+            viewModel.onVoiceResult(null)
+        }
+    }
+
+    // Auto-scroll to bottom
     LaunchedEffect(uiState.messages.size, uiState.responseText) {
         if (uiState.messages.isNotEmpty()) {
             listState.animateScrollToItem(uiState.messages.size - 1)
@@ -66,15 +78,12 @@ fun ConversationScreen(
                     }
                 },
                 actions = {
-                    // Voice enrollment
                     IconButton(onClick = onNavigateToVoiceEnrollment) {
                         Icon(Icons.Default.VoiceOverOff, "声音注册")
                     }
-                    // Memories
                     IconButton(onClick = onNavigateToMemories) {
                         Icon(Icons.Default.Psychology, "记忆")
                     }
-                    // Personality
                     IconButton(onClick = onNavigateToPersonality) {
                         Icon(Icons.Default.Settings, "设置")
                     }
@@ -82,89 +91,89 @@ fun ConversationScreen(
             )
         },
         bottomBar = {
-            BottomInputBar(
-                textInput = textInput,
-                onTextChange = { viewModel.updateTextInput(it) },
-                onSend = { viewModel.sendTextMessage() },
-                onMicClick = { viewModel.startVoiceMode() },
-                isListening = uiState.conversationState is ConversationState.Listening,
-                isProcessing = uiState.conversationState is ConversationState.Thinking
-            )
+            Surface(tonalElevation = 3.dp, shadowElevation = 8.dp) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Mic button - launches system voice dialog
+                    FilledIconButton(
+                        onClick = {
+                            voiceLauncher.launch(viewModel.createVoiceIntent())
+                        },
+                        modifier = Modifier.size(48.dp),
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = if (uiState.isListening)
+                                Color(0xFFE53935)
+                            else
+                                MaterialTheme.colorScheme.primaryContainer
+                        )
+                    ) {
+                        Icon(Icons.Default.Mic, "语音",
+                            tint = if (uiState.isListening) Color.White
+                            else MaterialTheme.colorScheme.onPrimaryContainer)
+                    }
+
+                    OutlinedTextField(
+                        value = textInput,
+                        onValueChange = { viewModel.updateTextInput(it) },
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text("输入消息...") },
+                        maxLines = 4,
+                        shape = RoundedCornerShape(24.dp)
+                    )
+
+                    FilledIconButton(
+                        onClick = { viewModel.sendTextMessage() },
+                        modifier = Modifier.size(48.dp),
+                        enabled = textInput.isNotBlank()
+                    ) {
+                        Icon(Icons.Default.Send, "发送")
+                    }
+                }
+            }
         }
     ) { padding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(padding),
+            state = listState,
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Always-listening toggle
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "始终聆听",
-                    style = MaterialTheme.typography.labelSmall
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Switch(
-                    checked = uiState.isAlwaysListening,
-                    onCheckedChange = { viewModel.toggleAlwaysListening() }
-                )
+            if (uiState.messages.isEmpty()) {
+                item {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("💕", style = MaterialTheme.typography.displayMedium)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("你的AI伴侣已就绪", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("输入文字或点击麦克风开始对话", style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
             }
 
-            // Message list
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                state = listState,
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Welcome message if empty
-                if (uiState.messages.isEmpty() && uiState.partialText.isBlank()) {
-                    item {
-                        WelcomeMessage()
-                    }
-                }
+            items(uiState.messages, key = { it.id }) { message ->
+                ChatBubble(message = message)
+            }
 
-                // Messages
-                items(uiState.messages, key = { it.id }) { message ->
-                    ChatBubble(message = message)
-                }
-
-                // Streaming response (not yet saved as message)
-                if (uiState.responseText.isNotBlank() &&
-                    uiState.conversationState is ConversationState.Thinking) {
-                    item {
-                        ChatBubble(
-                            message = MessageEntity(
-                                conversationId = "",
-                                role = "assistant",
-                                content = uiState.responseText
-                            ),
-                            isStreaming = true
-                        )
-                    }
-                }
-
-                // Speaking indicator
-                if (uiState.conversationState is ConversationState.Speaking &&
-                    uiState.responseText.isNotBlank()) {
-                    item {
-                        ChatBubble(
-                            message = MessageEntity(
-                                conversationId = "",
-                                role = "assistant",
-                                content = uiState.responseText
-                            ),
-                            isSpeaking = true
-                        )
-                    }
+            // Streaming response
+            if (uiState.responseText.isNotBlank() &&
+                uiState.conversationState == ConversationState.Thinking) {
+                item {
+                    ChatBubble(
+                        message = MessageEntity(conversationId = "", role = "assistant",
+                            content = uiState.responseText),
+                        isStreaming = true
+                    )
                 }
             }
         }
@@ -182,150 +191,36 @@ fun StatusChip(state: ConversationState) {
         is ConversationState.Error -> "错误" to MaterialTheme.colorScheme.error
     }
 
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = color.copy(alpha = 0.15f)
-    ) {
-        Text(
-            text,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-            style = MaterialTheme.typography.labelSmall,
-            color = color,
-            fontWeight = FontWeight.Medium
-        )
+    Surface(shape = RoundedCornerShape(12.dp), color = color.copy(alpha = 0.15f)) {
+        Text(text, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+            style = MaterialTheme.typography.labelSmall, color = color, fontWeight = FontWeight.Medium)
     }
 }
 
 @Composable
-fun ChatBubble(
-    message: MessageEntity,
-    isStreaming: Boolean = false,
-    isSpeaking: Boolean = false
-) {
+fun ChatBubble(message: MessageEntity, isStreaming: Boolean = false) {
     val isUser = message.role == "user"
     val alignment = if (isUser) Alignment.End else Alignment.Start
-    val bubbleColor = if (isUser) {
-        MaterialTheme.colorScheme.primaryContainer
-    } else {
-        MaterialTheme.colorScheme.secondaryContainer
-    }
+    val bubbleColor = if (isUser) MaterialTheme.colorScheme.primaryContainer
+    else MaterialTheme.colorScheme.secondaryContainer
     val shape = RoundedCornerShape(
-        topStart = 16.dp,
-        topEnd = 16.dp,
+        topStart = 16.dp, topEnd = 16.dp,
         bottomStart = if (isUser) 16.dp else 4.dp,
         bottomEnd = if (isUser) 4.dp else 16.dp
     )
 
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = alignment
-    ) {
+    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = alignment) {
         Surface(
             modifier = Modifier.widthIn(max = 300.dp),
             shape = shape,
-            color = bubbleColor
+            color = bubbleColor,
+            onClick = {}
         ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                Text(
-                    message.content + if (isStreaming) "▊" else "",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                if (isSpeaking) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        "🔊 播放中...",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun BottomInputBar(
-    textInput: String,
-    onTextChange: (String) -> Unit,
-    onSend: () -> Unit,
-    onMicClick: () -> Unit,
-    isListening: Boolean,
-    isProcessing: Boolean
-) {
-    Surface(
-        tonalElevation = 3.dp,
-        shadowElevation = 8.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Mic button
-            FilledIconButton(
-                onClick = onMicClick,
-                modifier = Modifier.size(48.dp),
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = if (isListening)
-                        Color(0xFFE53935) else MaterialTheme.colorScheme.primaryContainer
-                )
-            ) {
-                Icon(
-                    Icons.Default.Mic,
-                    "语音",
-                    tint = if (isListening) Color.White else MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-
-            // Text input
-            OutlinedTextField(
-                value = textInput,
-                onValueChange = onTextChange,
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("输入消息...") },
-                maxLines = 4,
-                shape = RoundedCornerShape(24.dp)
+            Text(
+                message.content + if (isStreaming) "▊" else "",
+                modifier = Modifier.padding(12.dp),
+                style = MaterialTheme.typography.bodyMedium
             )
-
-            // Send button
-            FilledIconButton(
-                onClick = onSend,
-                modifier = Modifier.size(48.dp),
-                enabled = textInput.isNotBlank() && !isProcessing
-            ) {
-                Icon(Icons.Default.Send, "发送")
-            }
         }
-    }
-}
-
-@Composable
-fun WelcomeMessage() {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            "💕",
-            style = MaterialTheme.typography.displayMedium
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            "你的AI伴侣已就绪",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            "输入文字或点击麦克风开始对话",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
     }
 }

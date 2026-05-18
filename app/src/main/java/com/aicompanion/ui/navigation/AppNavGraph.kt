@@ -12,6 +12,7 @@ import com.aicompanion.ui.screens.PersonalitySetupScreen
 import com.aicompanion.ui.screens.SettingsScreen
 import com.aicompanion.ui.screens.VoiceEnrollmentScreen
 import com.aicompanion.ui.viewmodel.MemoryViewModel
+import com.aicompanion.ui.viewmodel.PersonalityViewModel
 
 object Routes {
     const val HOME = "home"
@@ -32,41 +33,41 @@ fun AppNavGraph() {
     ) {
         composable(Routes.HOME) {
             HomeScreen(
-                onNavigateToConversation = {
-                    navController.navigate(Routes.CONVERSATION)
-                },
-                onNavigateToPersonality = {
-                    navController.navigate(Routes.PERSONALITY_SETUP)
-                },
-                onNavigateToMemories = {
-                    navController.navigate(Routes.MEMORIES)
-                }
+                onNavigateToConversation = { navController.navigate(Routes.CONVERSATION) },
+                onNavigateToPersonality = { navController.navigate(Routes.PERSONALITY_SETUP) },
+                onNavigateToMemories = { navController.navigate(Routes.MEMORIES) }
             )
         }
         composable(Routes.CONVERSATION) {
             ConversationScreen(
-                onNavigateToPersonality = {
-                    navController.navigate(Routes.PERSONALITY_SETUP)
-                },
-                onNavigateToMemories = {
-                    navController.navigate(Routes.MEMORIES)
-                },
-                onNavigateToVoiceEnrollment = {
-                    navController.navigate(Routes.VOICE_ENROLLMENT)
-                }
+                onNavigateToPersonality = { navController.navigate(Routes.PERSONALITY_SETUP) },
+                onNavigateToMemories = { navController.navigate(Routes.MEMORIES) },
+                onNavigateToVoiceEnrollment = { navController.navigate(Routes.VOICE_ENROLLMENT) }
             )
         }
         composable(Routes.PERSONALITY_SETUP) {
-            PersonalitySetupScreen()
+            val vm: PersonalityViewModel = hiltViewModel()
+            PersonalitySetupScreen(
+                personalities = vm.personalities,
+                activePersonalityId = vm.activeId,
+                onSelectPersonality = { vm.setActive(it) },
+                onCreateFromTemplate = { vm.createFromTemplate(it) },
+                onDeletePersonality = { vm.delete(it) },
+                onBack = { navController.popBackStack() }
+            )
         }
         composable(Routes.VOICE_ENROLLMENT) {
-            VoiceEnrollmentScreen()
+            VoiceEnrollmentScreen(onComplete = { navController.popBackStack() })
         }
         composable(Routes.MEMORIES) {
             MemoryBrowserScreen(viewModel = hiltViewModel())
         }
         composable(Routes.SETTINGS) {
-            SettingsScreen()
+            SettingsScreen(
+                onNavigateToPersonality = { navController.navigate(Routes.PERSONALITY_SETUP) },
+                onNavigateToVoiceEnrollment = { navController.navigate(Routes.VOICE_ENROLLMENT) },
+                onNavigateToMemories = { navController.navigate(Routes.MEMORIES) }
+            )
         }
     }
 }

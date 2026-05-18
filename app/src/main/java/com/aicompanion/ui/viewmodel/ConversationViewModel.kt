@@ -1,19 +1,22 @@
 package com.aicompanion.ui.viewmodel
 
+import android.app.Application
+import android.content.Intent
+import android.speech.RecognizerIntent
+import android.speech.tts.TextToSpeech
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.aicompanion.conversation.ConversationManager
 import com.aicompanion.conversation.ConversationState
 import com.aicompanion.data.local.entity.MessageEntity
 import com.aicompanion.data.repository.ConversationRepository
 import com.aicompanion.data.repository.MemoryRepository
 import com.aicompanion.llm.DeepSeekClient
 import com.aicompanion.llm.PromptBuilder
-import com.aicompanion.personality.EmotionInjector
 import com.aicompanion.personality.PersonalityManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.util.Locale
 import java.util.UUID
 import javax.inject.Inject
 
@@ -22,19 +25,18 @@ data class ConversationUiState(
     val partialText: String = "",
     val responseText: String = "",
     val messages: List<MessageEntity> = emptyList(),
-    val isAlwaysListening: Boolean = false,
+    val isListening: Boolean = false,
     val errorMessage: String? = null
 )
 
 @HiltViewModel
 class ConversationViewModel @Inject constructor(
-    private val conversationManager: ConversationManager,
+    private val app: Application,
     private val deepSeekClient: DeepSeekClient,
     private val promptBuilder: PromptBuilder,
     private val personalityManager: PersonalityManager,
     private val memoryRepository: MemoryRepository,
-    private val conversationRepository: ConversationRepository,
-    private val emotionInjector: EmotionInjector
+    private val conversationRepository: ConversationRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ConversationUiState())
@@ -43,32 +45,29 @@ class ConversationViewModel @Inject constructor(
     private val _textInput = MutableStateFlow("")
     val textInput: StateFlow<String> = _textInput.asStateFlow()
 
-    init {
-        // Observe conversation manager state
-        viewModelScope.launch {
-            conversationManager.state.collect { state ->
-                _uiState.update { it.copy(conversationState = state) }
-            }
-        }
-        viewModelScope.launch {
-            conversationManager.partialText.collect { text ->
-                _uiState.update { it.copy(partialText = text) }
-            }
-        }
-        viewModelScope.launch {
-            conversationManager.responseText.collect { text ->
-                _uiState.update { it.copy(responseText = text) }
-            }
-        }
+    private var tts: TextToSpeech? = null
 
-        // Ensure default personality exists
+    init {
         viewModelScope.launch {
             personalityManager.ensureDefaultPersonality()
+        }
+        tts = TextToSpeech(app) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                tts?.language = Locale.CHINESE
+            }
         }
     }
 
     fun updateTextInput(text: String) {
         _textInput.value = text
+    }
+
+    fun onVoiceResult(text: String?) {
+        _uiState.update { it.copy(isListening = false) }
+        if (!text.isNullOrBlank()) {
+            _textInput.value = text
+            sendTextMessage()
+        }
     }
 
     fun sendTextMessage() {
@@ -80,7 +79,7 @@ class ConversationViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                _uiState.update { it.copy(conversationState = ConversationState.Thinking as ConversationState) }
+                _uiState.update { it.copy(conversationState = ConversationState.Thinking) }
 
                 val personality = personalityManager.getActivePersonality()
                 val systemPrompt = if (personality != null) {
@@ -90,11 +89,9 @@ class ConversationViewModel @Inject constructor(
                     "You are a caring AI companion. Respond naturally in Chinese."
                 }
 
-                // Build messages from current chat history
                 val recentMessages = _uiState.value.messages.takeLast(20)
                 val chatMessages = promptBuilder.buildMessages(recentMessages, text)
 
-                // Save user message
                 val userMsg = MessageEntity(
                     conversationId = getOrCreateConversationId(),
                     role = "user",
@@ -102,7 +99,6 @@ class ConversationViewModel @Inject constructor(
                 )
                 _uiState.update { it.copy(messages = it.messages + userMsg) }
 
-                // Stream LLM response
                 val responseBuilder = StringBuilder()
                 deepSeekClient.chatCompletionStream(systemPrompt, chatMessages)
                     .collect { token ->
@@ -110,9 +106,8 @@ class ConversationViewModel @Inject constructor(
                         _uiState.update { it.copy(responseText = responseBuilder.toString()) }
                     }
 
-                val finalResponse = responseBuilder.toString().ifBlank { "嗯..." }
+                val finalResponse = responseBuilder.toString().ifBlank { "嗯，我在听呢..." }
 
-                // Save assistant message
                 val assistantMsg = MessageEntity(
                     conversationId = getOrCreateConversationId(),
                     role = "assistant",
@@ -127,20 +122,16 @@ class ConversationViewModel @Inject constructor(
                     )
                 }
 
-                // Persist to database
                 conversationRepository.insertMessage(userMsg)
                 conversationRepository.insertMessage(assistantMsg)
 
-                // Detect emotion
-                val emotion = emotionInjector.detectEmotion(text)
-                if (emotion.confidence > 0.5f) {
-                    // Could add emotion indicator to UI
-                }
+                // Speak response aloud
+                speak(finalResponse)
 
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
-                        conversationState = ConversationState.Error("发送失败：${e.message}"),
+                        conversationState = ConversationState.Idle,
                         errorMessage = "发送失败：${e.message}"
                     )
                 }
@@ -148,32 +139,31 @@ class ConversationViewModel @Inject constructor(
         }
     }
 
-    fun startVoiceMode() {
-        conversationManager.startListening(alwaysListening = false)
+    fun createVoiceIntent(): Intent {
+        _uiState.update { it.copy(isListening = true) }
+        return Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "zh-CN")
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "说吧...")
+        }
     }
 
-    fun stopVoiceMode() {
-        conversationManager.stopListening()
-    }
-
-    fun toggleAlwaysListening() {
-        conversationManager.toggleAlwaysListening()
-        _uiState.update { it.copy(isAlwaysListening = !it.isAlwaysListening) }
-    }
-
-    fun interruptSpeaking() {
-        conversationManager.interrupt()
+    private fun speak(text: String) {
+        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "tts_${System.currentTimeMillis()}")
     }
 
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
     }
 
+    override fun onCleared() {
+        super.onCleared()
+        tts?.shutdown()
+    }
+
     private var conversationId: String? = null
     private fun getOrCreateConversationId(): String {
-        if (conversationId == null) {
-            conversationId = UUID.randomUUID().toString()
-        }
+        if (conversationId == null) conversationId = UUID.randomUUID().toString()
         return conversationId!!
     }
 }
