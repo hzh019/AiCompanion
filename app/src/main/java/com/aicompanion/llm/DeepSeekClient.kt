@@ -79,10 +79,11 @@ class DeepSeekClient @Inject constructor() {
         }
 
         reader.use { br ->
-            br.forEachLine { line ->
+            var line = br.readLine()
+            while (line != null) {
                 if (line.startsWith("data: ")) {
                     val json = line.removePrefix("data: ").trim()
-                    if (json == "[DONE]") return@forEachLine
+                    if (json == "[DONE]") break
                     try {
                         val obj = JSONObject(json)
                         val choices = obj.optJSONArray("choices")
@@ -93,6 +94,7 @@ class DeepSeekClient @Inject constructor() {
                         }
                     } catch (_: Exception) { }
                 }
+                line = br.readLine()
             }
         }
         response.close()
