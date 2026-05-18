@@ -1,8 +1,6 @@
 package com.aicompanion.conversation
 
 import android.util.Log
-import com.aallam.openai.api.chat.ChatMessage
-import com.aallam.openai.api.chat.ChatRole
 import com.aicompanion.audio.AudioCaptureManager
 import com.aicompanion.audio.AudioDeviceRouter
 import com.aicompanion.audio.AudioFocusManager

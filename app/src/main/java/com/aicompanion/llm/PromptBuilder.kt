@@ -1,7 +1,5 @@
 package com.aicompanion.llm
 
-import com.aallam.openai.api.chat.ChatMessage
-import com.aallam.openai.api.chat.ChatRole
 import com.aicompanion.data.local.entity.MemoryEntity
 import com.aicompanion.data.local.entity.MessageEntity
 import com.aicompanion.data.local.entity.PersonalityEntity
@@ -67,23 +65,15 @@ class PromptBuilder @Inject constructor() {
     fun buildMessages(
         recentMessages: List<MessageEntity>,
         currentUserMessage: String
-    ): List<ChatMessage> {
-        val result = mutableListOf<ChatMessage>()
+    ): List<Map<String, String>> {
+        val result = mutableListOf<Map<String, String>>()
 
-        // Add recent context (last N messages, oldest first)
         val contextMessages = recentMessages.takeLast(MAX_CONTEXT_MESSAGES)
         contextMessages.forEach { msg ->
-            val role = when (msg.role) {
-                "user" -> ChatRole.User
-                "assistant" -> ChatRole.Assistant
-                else -> ChatRole.System
-            }
-            result.add(ChatMessage(role = role, content = msg.content))
+            result.add(mapOf("role" to msg.role, "content" to msg.content))
         }
 
-        // Add current user message
-        result.add(ChatMessage(role = ChatRole.User, content = currentUserMessage))
-
+        result.add(mapOf("role" to "user", "content" to currentUserMessage))
         return result
     }
 }

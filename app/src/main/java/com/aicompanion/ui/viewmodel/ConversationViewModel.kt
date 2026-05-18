@@ -2,8 +2,6 @@ package com.aicompanion.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.aallam.openai.api.chat.ChatMessage
-import com.aallam.openai.api.chat.ChatRole
 import com.aicompanion.conversation.ConversationManager
 import com.aicompanion.conversation.ConversationState
 import com.aicompanion.data.local.entity.MessageEntity

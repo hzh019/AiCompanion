@@ -137,14 +137,7 @@ class ProactiveWorker @AssistedInject constructor(
             """.trimIndent()
 
             val messages = listOf(
-                com.aallam.openai.api.chat.ChatMessage(
-                    role = com.aallam.openai.api.chat.ChatRole.System,
-                    content = systemPrompt
-                ),
-                com.aallam.openai.api.chat.ChatMessage(
-                    role = com.aallam.openai.api.chat.ChatRole.User,
-                    content = "请给我发一条消息"
-                )
+                mapOf("role" to "user", "content" to "请给我发一条消息")
             )
 
             val responseBuilder = StringBuilder()
