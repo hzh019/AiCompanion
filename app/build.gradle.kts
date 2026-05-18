@@ -82,10 +82,7 @@ dependencies {
     implementation(libs.retrofit.gson)
     implementation(libs.openai.kotlin)
 
-    // Voice / Audio
-    implementation(libs.sherpa.onnx)
-    implementation(libs.mlkit.speech)
-    implementation(libs.mlkit.chinese)
+    // Voice / Audio — using Android built-in SpeechRecognizer and TextToSpeech
 
     // Background
     implementation(libs.work.runtime)
