@@ -4,12 +4,14 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.aicompanion.ui.screens.ConversationScreen
 import com.aicompanion.ui.screens.HomeScreen
 import com.aicompanion.ui.screens.MemoryBrowserScreen
 import com.aicompanion.ui.screens.PersonalitySetupScreen
 import com.aicompanion.ui.screens.SettingsScreen
 import com.aicompanion.ui.screens.VoiceEnrollmentScreen
+import com.aicompanion.ui.viewmodel.MemoryViewModel
 
 object Routes {
     const val HOME = "home"
@@ -61,7 +63,7 @@ fun AppNavGraph() {
             VoiceEnrollmentScreen()
         }
         composable(Routes.MEMORIES) {
-            MemoryBrowserScreen()
+            MemoryBrowserScreen(viewModel = hiltViewModel())
         }
         composable(Routes.SETTINGS) {
             SettingsScreen()

@@ -1,8 +1,6 @@
 package com.aicompanion.voice
 
-import com.aicompanion.data.local.entity.VoiceProfileEntity
 import com.aicompanion.data.repository.VoiceProfileRepository
-import kotlinx.coroutines.flow.firstOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.sqrt
@@ -29,7 +27,7 @@ class SpeakerIdentifier @Inject constructor(
      * Real implementation uses sherpa-onnx speaker embedding model.
      */
     suspend fun verify(audioFrames: List<ShortArray>): VerificationResult {
-        val activeProfile = voiceProfileRepository.getActiveProfile().firstOrNull()
+        val activeProfile = voiceProfileRepository.getActiveProfile()
 
         if (activeProfile == null) {
             // No enrolled profile — allow access (first-time user)
@@ -124,6 +122,6 @@ class SpeakerIdentifier @Inject constructor(
      * Check if any voice profile is enrolled
      */
     suspend fun hasEnrolledProfile(): Boolean {
-        return voiceProfileRepository.getActiveProfile().firstOrNull() != null
+        return voiceProfileRepository.getActiveProfile() != null
     }
 }

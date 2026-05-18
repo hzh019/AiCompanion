@@ -37,9 +37,10 @@ class PromptBuilder @Inject constructor() {
         }
 
         // Override or behavioral rules
-        if (personality.systemPromptOverride.isNotBlank()) {
+        val override = personality.systemPromptOverride
+        if (override != null && override.isNotBlank()) {
             sb.clear()
-            sb.append(personality.systemPromptOverride)
+            sb.append(override)
         } else {
             sb.appendLine()
             sb.appendLine("【行为准则】")
